@@ -62,7 +62,7 @@ local function install_scoreboard_scenegraph(definitions)
 	-- gets a multi-column frame here too. This runs once at hook_require time;
 	-- `adjust_size` re-applies width and height on every rebuild afterwards.
 	local tactical_settings = mod.scoreboard_layout_settings
-		and mod:scoreboard_layout_settings(loaded_scoreboard_rows())
+		and mod:scoreboard_layout_settings(loaded_scoreboard_rows(), {single_column = true})
 		or table.clone(ViewSettings)
 	if tactical_settings == ViewSettings then
 		tactical_settings = table.clone(ViewSettings)
@@ -121,6 +121,7 @@ local function build_overlay_rows(overlay, ui_renderer)
 	mod._widget_timers = {}
 	mod._widget_times = {}
 	mod._wait_timer = 0
+	overlay._scores_scroll_state = {scroll = 0}
 	local _, total_height = mod:setup_row_widgets(
 		mod.registered_scoreboard_rows,
 		{},
@@ -136,6 +137,13 @@ local function build_overlay_rows(overlay, ui_renderer)
 		scenegraph_ids
 	)
 	mod:adjust_size(total_height, scoreboard_widget, overlay._ui_scenegraph, nil, scenegraph_ids)
+	overlay._scores_content_height = total_height
+end
+
+local function overlay_viewport(overlay)
+	local rows_graph = overlay._ui_scenegraph and rawget(overlay._ui_scenegraph, scenegraph_ids.rows)
+
+	return rows_graph and rows_graph.size and rows_graph.size[2] or 0
 end
 
 local function sync_visibility(overlay)
@@ -153,19 +161,34 @@ local function sync_visibility(overlay)
 	end
 end
 
-local function sync_alpha(overlay, ui_renderer)
+local function sync_alpha(overlay, ui_renderer, input_service)
 	local alpha = mod.tactical_overview and overlay._alpha_multiplier or 0
 	local scoreboard_widget = overlay._widgets_by_name.scoreboard
 	if scoreboard_widget then
 		FrameStyle.update_backdrop_opacity(scoreboard_widget)
 		scoreboard_widget.alpha_multiplier = alpha
 	end
+
+	-- A full plugin row set is taller than the panel, and the panel is deliberately
+	-- kept narrow here -- it sits on top of the game -- so the overflow scrolls
+	-- rather than spilling into a second column.
+	overlay._scores_scroll_state = overlay._scores_scroll_state or {scroll = 0}
+	local viewport = overlay_viewport(overlay)
+	local scroll = mod:update_scroll_state(
+		overlay._scores_scroll_state,
+		input_service,
+		overlay._scores_content_height or 0,
+		viewport
+	)
+
 	for i = 1, #(overlay.row_widgets or {}) do
 		local widget = overlay.row_widgets[i]
 		widget.alpha_multiplier = alpha
-		UIWidget.draw(widget, ui_renderer)
-		if widget.content and widget.content.player_hotspot_1 then
-			mod:handle_player_header_hotspots(widget)
+		if mod:apply_row_scroll(widget, scroll, viewport) then
+			UIWidget.draw(widget, ui_renderer)
+			if widget.content and widget.content.player_hotspot_1 then
+				mod:handle_player_header_hotspots(widget)
+			end
 		end
 	end
 end
@@ -231,7 +254,7 @@ mod:hook(CLASS.HudElementTacticalOverlay, "_draw_widgets", function(func, self, 
 		if hidden then
 			restore_native_tactical_overlay_widgets(hidden)
 		end
-		sync_alpha(self, ui_renderer)
+		sync_alpha(self, ui_renderer, input_service)
 	end
 end)
 

@@ -494,18 +494,10 @@ ScoreboardHistoryView.update = function(self, dt, t, input_service, view_data)
 	return ScoreboardHistoryView.super.update(self, dt, t, input_service)
 end
 
-local preview_scroll_step = 60
-
--- The preview panel has no scrollbar or mask, so scrolling is done by shifting the
--- row widgets and refusing to draw the ones that would fall outside the frame.
--- Cheaper than standing up an offscreen renderer for the preview, and it cannot
--- bleed rows past the panel edge the way a plain offset would.
-ScoreboardHistoryView._preview_scroll_extent = function(self)
+ScoreboardHistoryView._preview_viewport = function(self)
 	local rows_graph = self._ui_scenegraph and rawget(self._ui_scenegraph, "scoreboard_rows")
-	local viewport = rows_graph and rows_graph.size and rows_graph.size[2] or 0
-	local content = self._preview_content_height or 0
 
-	return math.max(content - viewport, 0), viewport
+	return rows_graph and rows_graph.size and rows_graph.size[2] or 0
 end
 
 ScoreboardHistoryView._update_preview_scroll = function(self, input_service)
@@ -513,26 +505,20 @@ ScoreboardHistoryView._update_preview_scroll = function(self, input_service)
 		return
 	end
 
-	local extent = self:_preview_scroll_extent()
-	if extent <= 0 then
-		self._preview_scroll = 0
-		return
-	end
-
-	local scroll_axis = input_service and input_service:get("scroll_axis")
-	local delta = scroll_axis and scroll_axis[2] or 0
-	if delta == 0 then
-		return
-	end
-
 	-- The saved-run list on the left runs its own scrollbar off the same wheel;
 	-- leave that alone while the cursor is over it.
 	local scrollbar = self._widgets_by_name.scrollbar
 	if scrollbar and scrollbar.content and scrollbar.content.in_scroll_area then
-		return
+		input_service = nil
 	end
 
-	self._preview_scroll = math.clamp((self._preview_scroll or 0) - delta * preview_scroll_step, 0, extent)
+	self._preview_scroll_state = self._preview_scroll_state or {}
+	self._preview_scroll = mod:update_scroll_state(
+		self._preview_scroll_state,
+		input_service,
+		self._preview_content_height or 0,
+		self:_preview_viewport()
+	)
 end
 
 ScoreboardHistoryView.draw = function(self, dt, t, input_service, layer)
@@ -577,23 +563,11 @@ ScoreboardHistoryView._draw_preview_rows = function(self, dt, input_service)
 	end
 
 	local scroll = self._preview_scroll or 0
-	local _, viewport = self:_preview_scroll_extent()
+	local viewport = self:_preview_viewport()
 	local renderer = self._ui_renderer
 	UIRenderer.begin_pass(renderer, self._ui_scenegraph, input_service, dt, self._render_settings)
 	for _, widget in ipairs(self.row_widgets or {}) do
-		local base = widget._scores_base_offset_y
-		if base == nil then
-			base = widget.offset[2]
-			widget._scores_base_offset_y = base
-		end
-
-		local y = base - scroll
-		widget.offset[2] = y
-
-		-- Whole rows only. A row straddling the frame edge would draw over the
-		-- border, and there is no mask here to cut it off.
-		local height = widget._scores_row_height or 0
-		if y >= -0.5 and (viewport <= 0 or y + height <= viewport) then
+		if mod:apply_row_scroll(widget, scroll, viewport) then
 			UIWidget.draw(widget, renderer)
 			mod:handle_player_header_hotspots(widget, input_service)
 		end

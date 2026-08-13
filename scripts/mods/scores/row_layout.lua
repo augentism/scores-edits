@@ -27,6 +27,11 @@ local multi_column_gap = 40
 local multi_column_header_width = ScoreboardViewSettings.scoreboard_column_header_width
 local multi_column_block_width = 920
 
+-- Matches the saved-run list's `grid_size[2]` in history_view_settings.lua, so the
+-- preview panel is the same height as the list beside it instead of growing to the
+-- full row set and running off the bottom of the screen.
+local history_preview_height = 760
+
 local function row_height(row, compact_level)
 	local header = row.name == "header" or row.player_header
 	local height = (row.name == "score" or row.big) and 42
@@ -401,7 +406,8 @@ end
 -- past what one column can show even at maximum compaction, so the rows flow into
 -- side-by-side columns instead of running off the bottom of the screen -- the panel
 -- has no mask or scrollbar, so overflow is not clipped, it is just lost.
-mod.scoreboard_layout = function(self, loaded_rows, sorted_rows, force_single_column)
+mod.scoreboard_layout = function(self, loaded_rows, sorted_rows, options)
+	options = options or {}
 	sorted_rows = sorted_rows or self:get_rows_in_groups(loaded_rows or self.registered_scoreboard_rows)
 
 	local data_row_count = visible_data_row_count(sorted_rows)
@@ -413,18 +419,16 @@ mod.scoreboard_layout = function(self, loaded_rows, sorted_rows, force_single_co
 	local chrome = ScoreboardViewSettings.scoreboard_table_top_padding
 		+ ScoreboardViewSettings.scoreboard_table_bottom_padding
 		+ frame_chrome_height
-	local budget = math.max(self:scoreboard_max_height() - chrome, 1)
+	local max_height = math.min(options.max_height or self:scoreboard_max_height(), self:scoreboard_max_height())
+	local budget = math.max(max_height - chrome, 1)
 
-	local columns = tonumber(self:get("scoreboard_columns")) or 0
-	if columns ~= 1 and columns ~= 2 then
-		columns = total > budget and 2 or 1
-	end
-
-	if force_single_column then
-		-- The history preview shares its panel geometry with a scrollable run list
-		-- beside it, so widening it would overlap that grid. Kept single-column
-		-- until that view gets a layout of its own.
-		columns = 1
+	-- Only the end-of-mission board can go multi-column, and only on request.
+	-- Everywhere else -- and by default everywhere -- a tall panel that scrolls beats
+	-- a wide one: the in-mission overlay sits on top of the game, and the history
+	-- preview sits beside the saved-run list.
+	local columns = 1
+	if not options.single_column and tonumber(self:get("scoreboard_columns")) == 2 then
+		columns = 2
 	end
 
 	local multi = columns > 1
@@ -435,6 +439,7 @@ mod.scoreboard_layout = function(self, loaded_rows, sorted_rows, force_single_co
 		content_height = total,
 		chrome_height = chrome,
 		column_budget = budget,
+		max_height = max_height,
 		-- Even split rather than fill-then-spill: a first column running to the
 		-- screen edge beside a nearly empty second one reads as a bug.
 		column_target = math.ceil(total / columns),
@@ -460,8 +465,8 @@ end
 
 -- A settings clone describing the panel this row set needs, for the frame/scenegraph
 -- builders in frame_style.lua. They read `scoreboard_size` and nothing else.
-mod.scoreboard_layout_settings = function(self, loaded_rows)
-	local ok, layout = pcall(self.scoreboard_layout, self, loaded_rows)
+mod.scoreboard_layout_settings = function(self, loaded_rows, options)
+	local ok, layout = pcall(self.scoreboard_layout, self, loaded_rows, nil, options)
 	if not ok or not layout then
 		return ScoreboardViewSettings
 	end
@@ -484,12 +489,67 @@ mod.estimated_scoreboard_height = function(self, loaded_rows, layout)
 		+ ScoreboardViewSettings.scoreboard_table_bottom_padding
 		+ frame_chrome_height
 
-	return math.min(height, self:scoreboard_max_height())
+	return math.min(height, layout.max_height or self:scoreboard_max_height())
+end
+
+-- Scrolling for panels that have no scrollbar and no mask: the rows are shifted and
+-- any row that would land outside the frame is simply not drawn. Whole rows only --
+-- a straddling one would paint over the border with nothing to clip it.
+local scroll_step = 60
+
+mod.scroll_extent = function(self, content_height, viewport)
+	return math.max((content_height or 0) - (viewport or 0), 0)
+end
+
+mod.update_scroll_state = function(self, state, input_service, content_height, viewport)
+	local extent = self:scroll_extent(content_height, viewport)
+	if extent <= 0 then
+		state.scroll = 0
+		return 0
+	end
+
+	local scroll_axis = input_service and input_service:get("scroll_axis")
+	local delta = scroll_axis and scroll_axis[2] or 0
+	if delta ~= 0 then
+		state.scroll = math.clamp((state.scroll or 0) - delta * scroll_step, 0, extent)
+	else
+		state.scroll = math.clamp(state.scroll or 0, 0, extent)
+	end
+
+	return state.scroll
+end
+
+-- Positions one row for the current scroll offset. Returns whether it should draw.
+mod.apply_row_scroll = function(self, widget, scroll, viewport)
+	local base = widget._scores_base_offset_y
+	if base == nil then
+		base = widget.offset[2]
+		widget._scores_base_offset_y = base
+	end
+
+	local y = base - (scroll or 0)
+	widget.offset[2] = y
+
+	if not viewport or viewport <= 0 then
+		return true
+	end
+
+	local height = widget._scores_row_height or 0
+	return y >= -0.5 and y + height <= viewport
 end
 
 mod.setup_row_widgets = function(self, loaded_rows, groups, row_widgets, widgets_by_name, loaded_players, is_history, end_view, obj, create_widget_callback, ui_renderer, scenegraph, scenegraph_ids)
 	local sorted_rows = self:get_rows_in_groups(loaded_rows)
-	local layout = self:scoreboard_layout(nil, sorted_rows, is_history)
+	-- Only the tactical overlay passes its own scenegraph ids; that is how this
+	-- distinguishes the three surfaces without threading another argument through
+	-- every caller.
+	local is_overlay = scenegraph_ids ~= nil
+	local layout = self:scoreboard_layout(nil, sorted_rows, {
+		single_column = is_history or is_overlay,
+		-- The preview panel is pinned to the height of the saved-run list it sits
+		-- beside, rather than growing to the full row set and running off-screen.
+		max_height = is_history and history_preview_height or nil,
+	})
 	local counts_by_section = section_row_counts(sorted_rows)
 	local compact_level = layout.compact_level
 
@@ -572,9 +632,9 @@ end
 mod.adjust_size = function(self, total_height, scoreboard_widget, scenegraph, row_widgets, scenegraph_ids)
 	local layout = self._scoreboard_layout
 	local height = total_height + ScoreboardViewSettings.scoreboard_table_bottom_padding + frame_chrome_height
-	-- Clamp to the user's ceiling, not the hardcoded panel size. The column flow is
-	-- what keeps content inside this; the clamp is only a backstop.
-	height = math.min(height, self:scoreboard_max_height())
+	-- Clamp to whatever ceiling this surface resolved (the history preview uses a
+	-- smaller one). Content past it is reachable by scrolling, not lost.
+	height = math.min(height, layout and layout.max_height or self:scoreboard_max_height())
 	local width = layout and self:scoreboard_layout_panel_width(layout) or ScoreboardViewSettings.scoreboard_size[1]
 	local style = scoreboard_widget and scoreboard_widget.style or {}
 	local sizes = {height - 36, height, height - 3, height - 28}
