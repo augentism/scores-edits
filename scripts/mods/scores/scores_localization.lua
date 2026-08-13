@@ -96,6 +96,41 @@ return {
 		"Mueve Scores hacia arriba o abajo desde su posición predeterminada en la pantalla final. Los valores negativos lo suben; los positivos lo bajan.",
 		"Verschiebt Scores auf dem Abschlussbildschirm nach oben oder unten. Negative Werte verschieben sie nach oben, positive nach unten."
 	),
+	scoreboard_columns = localized(
+		"Scoreboard columns",
+		"记分板列数",
+		"Столбцы таблицы",
+		"Colonnes du tableau",
+		"Columnas del marcador",
+		"Spalten der Anzeigetafel"
+	),
+	scoreboard_columns_description = localized(
+		"How many side-by-side columns of rows the scoreboard uses. Automatic splits into two columns only when the rows would not otherwise fit.",
+		"记分板使用多少并排的行列。自动模式仅在行数放不下时才拆分为两列。",
+		"Сколько столбцов строк использует таблица. «Автоматически» разделяет на два столбца, только если строки иначе не помещаются.",
+		"Nombre de colonnes de lignes affichées côte à côte. Le mode automatique n'utilise deux colonnes que si les lignes ne tiennent pas autrement.",
+		"Cuántas columnas de filas se muestran una al lado de la otra. El modo automático solo divide en dos columnas si las filas no caben.",
+		"Wie viele nebeneinanderliegende Zeilenspalten die Anzeigetafel nutzt. Automatisch teilt nur dann in zwei Spalten, wenn die Zeilen sonst nicht passen."
+	),
+	scoreboard_columns_auto = localized("Automatic", "自动", "Автоматически", "Automatique", "Automático", "Automatisch"),
+	scoreboard_columns_one = localized("One column", "一列", "Один столбец", "Une colonne", "Una columna", "Eine Spalte"),
+	scoreboard_columns_two = localized("Two columns", "两列", "Два столбца", "Deux colonnes", "Dos columnas", "Zwei Spalten"),
+	scoreboard_max_height = localized(
+		"Scoreboard maximum height",
+		"记分板最大高度",
+		"Максимальная высота таблицы",
+		"Hauteur maximale du tableau",
+		"Altura máxima del marcador",
+		"Maximale Höhe der Anzeigetafel"
+	),
+	scoreboard_max_height_description = localized(
+		"Tallest the scoreboard panel may grow before rows are split into another column. Lower this if the panel runs off the bottom of your screen.",
+		"记分板面板在将行拆分到另一列之前可以增长的最大高度。如果面板超出屏幕底部，请调低此值。",
+		"Максимальная высота панели таблицы, после которой строки переносятся в другой столбец. Уменьшите, если панель уходит за нижний край экрана.",
+		"Hauteur maximale du panneau avant que les lignes ne soient réparties dans une autre colonne. Réduisez-la si le panneau dépasse le bas de l'écran.",
+		"Altura máxima del panel antes de repartir las filas en otra columna. Redúcela si el panel se sale por la parte inferior de la pantalla.",
+		"Maximale Höhe des Panels, bevor Zeilen in eine weitere Spalte umbrochen werden. Verringern, wenn das Panel unten aus dem Bild läuft."
+	),
 	announce_top_scores = localized(
 		"Brag",
 		"炫耀",
@@ -139,6 +174,7 @@ return {
 	section_offense = localized("Offense", "进攻", "Атака", "Attaque", "Ofensivos", "Offensive"),
 	section_defense = localized("Defense", "防御", "Защита", "Défense", "Defensivos", "Defensive"),
 	section_support = localized("Teamwork", "团队协作", "Командная работа", "Travail d'équipe", "Trabajo en equipo", "Teamwork"),
+	section_plugin_rows = localized("Additional Stats", "附加统计", "Дополнительная статистика", "Statistiques supplémentaires", "Estadísticas adicionales", "Zusätzliche Statistiken"),
 
 	row_resources_collected = localized("Resources collected", "收集资源", "Собрано ресурсов", "Ressources collectées", "Recursos recogidos", "Gesammelte Ressourcen"),
 	row_plasteel = localized("Plasteel collected", "收集塑钢", "Собрано пластали", "Plasteel collecté", "Plastiacero recogido", "Gesammeltes Plasteel"),

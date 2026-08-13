@@ -1,6 +1,38 @@
 local mod = get_mod("scores")
 mod.name = "scores"
 
+local DMF = get_mod("DMF")
+
+-- Scoreboard plugins (Ovenproof's Community Patch and friends) resolve their host
+-- with `get_mod("scoreboard")` and install *no hooks at all* when that is nil, so
+-- this mod answers to that name too. Plugins then run unmodified and stay
+-- updatable from their own source.
+--
+-- Deliberately a wrapper around the global rather than `DMF.mods["scoreboard"] = mod`:
+-- `dmf.mods_update_event` iterates `pairs(_mods)`, so a second entry pointing here
+-- would run `mod.update` twice every frame -- double-ticking the coherency timer,
+-- accuracy polling and the account cache with no visible symptom.
+--
+-- A real scoreboard mod always wins the lookup, so having both installed degrades
+-- to the old behaviour instead of fighting over the plugins.
+local alias = DMF:persistent_table("scores_scoreboard_alias")
+if not alias.original then
+	-- Parked across reloads so re-running this file replaces the wrapper rather
+	-- than nesting a new one around the previous wrapper.
+	alias.original = get_mod
+end
+
+_G.get_mod = function(name)
+	local found = alias.original(name)
+	if found then
+		return found
+	end
+
+	if name == "scoreboard" then
+		return mod
+	end
+end
+
 local function load(path)
 	return mod:io_dofile("scores/scripts/mods/scores/"..path)
 end

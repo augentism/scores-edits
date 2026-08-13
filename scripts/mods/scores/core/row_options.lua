@@ -62,7 +62,17 @@ mod.row_setting_valid = function(self, row)
 		return true
 	end
 
-	return self:row_setting_current_value(row, setting)
+	local value = self:row_setting_current_value(row, setting)
+	if value == nil then
+		-- The owning mod does not define this setting, so there is nothing to gate
+		-- on. This is the normal case for a plugin row loaded back out of history:
+		-- saved rows are rebuilt against this mod, not the plugin that produced
+		-- them, so the plugin's setting id resolves to nil here. Fail visible --
+		-- hiding it would silently drop rows from old runs.
+		return true
+	end
+
+	return value
 end
 
 mod.row_setting_label = function(self, row, base_label)

@@ -11,6 +11,25 @@ local max_players = ViewSettings.scoreboard_max_players or 4
 local compact_section_spacing = 12
 local dense_section_spacing = 6
 local vanilla_players = 4
+local horizontal_padding = ViewSettings.scoreboard_horizontal_padding
+local row_background_padding = horizontal_padding - 25
+
+-- Column geometry for the build currently in progress, published by
+-- `mod.setup_row_widgets`. Absent (history preview built by an older path, or a
+-- direct call) means the original single-column numbers.
+local function active_layout()
+	return mod._scoreboard_layout
+end
+
+local function layout_header_width()
+	local layout = active_layout()
+	return layout and layout.header_width or ViewSettings.scoreboard_column_header_width
+end
+
+local function layout_block_width()
+	local layout = active_layout()
+	return layout and layout.block_width or ViewSettings.scoreboard_size[1]
+end
 
 local function player_pass_maps()
 	local text_by_player = {}
@@ -127,11 +146,14 @@ local function value_color(row_data, zero_setting, worst_setting, score_text)
 end
 
 local function player_column_width(player_count)
-	if player_count <= vanilla_players then
+	local layout = active_layout()
+	local single_column = not layout or layout.columns <= 1
+
+	if player_count <= vanilla_players and single_column then
 		return ViewSettings.scoreboard_column_width
 	end
 
-	local available_width = ViewSettings.scoreboard_size[1] - ViewSettings.scoreboard_column_header_width
+	local available_width = layout_block_width() - layout_header_width()
 
 	return math.floor(available_width / player_count)
 end
@@ -177,7 +199,7 @@ local function configure_player_columns(pass_template, text_by_player, icon_by_t
 		local icon_index = text_index and icon_by_text[text_index]
 		local account_index = text_index and account_by_text[text_index]
 		local stripe_index = text_index and stripe_by_text[text_index]
-		local x = ViewSettings.scoreboard_column_header_width + width * (player_index - 1)
+		local x = layout_header_width() + width * (player_index - 1)
 
 		set_pass_index_x(pass_template, text_index, x, width)
 		set_pass_index_x(pass_template, icon_index, x, row_height)
@@ -251,11 +273,18 @@ end
 
 local function widget_offset(end_view, row, current_offset, widgets_by_name, scenegraph, scenegraph_ids)
 	local z = widget_z(scenegraph, scenegraph_ids)
+	local layout = active_layout()
+	local x = 0
+	if layout and layout.columns > 1 then
+		x = mod:scoreboard_column_offset(layout, layout.column_index or 1)
+	end
+
 	if end_view and row.parent then
 		local parent = widgets_by_name["scoreboard_row_"..row.parent]
-		return {0, parent and parent.offset[2] or current_offset, z}
+		-- Take the parent's x too, so a child cannot land in the other column.
+		return {parent and parent.offset[1] or x, parent and parent.offset[2] or current_offset, z}
 	end
-	return {0, current_offset, z}
+	return {x, current_offset, z}
 end
 
 local function apply_child_columns(pass_template, row, text_by_player, icon_by_text, stripe_by_text, sorted_rows, column_width)
@@ -388,6 +417,20 @@ mod.create_row_widget = function(self, index, current_offset, visible_rows, sour
 	local template = table.clone(Blueprints.scoreboard_row)
 	local pass_template = template.pass_template
 	local player_count = math.min(#model.players, max_players)
+
+	-- The blueprint is built for a full-width single-column block. In multi-column
+	-- mode every row widget is one narrower block, so the widget, its label cell and
+	-- its background band all shrink to match before any pass is positioned.
+	local block_width = layout_block_width()
+	template.size = {block_width, template.size[2]}
+	if pass_template[1] and pass_template[1].style and pass_template[1].style.size then
+		pass_template[1].style.size[1] = layout_header_width() - horizontal_padding
+	end
+	local background_pass = pass_template[#pass_template]
+	if background_pass and background_pass.style and background_pass.style.size then
+		background_pass.style.size[1] = block_width - row_background_padding * 2
+	end
+
 	local column_width = configure_player_columns(pass_template, text_by_player, icon_by_text, account_by_text, stripe_by_text, math.max(player_count, 1), row_height)
 
 	if row.section and row.name ~= "section_offense" then
@@ -574,7 +617,11 @@ mod.create_row_widget = function(self, index, current_offset, visible_rows, sour
 		end
 	end
 
-	self._widget_times[widget.name] = current_offset / 1000
+	-- Fade-in stagger, as a fraction of how tall this column actually gets. Dividing
+	-- by a literal 1000 meant a taller board pushed the last row's fade seconds out.
+	local layout = active_layout()
+	local stagger_span = layout and math.max(layout.column_target, 1) or 1000
+	self._widget_times[widget.name] = math.min(current_offset / stagger_span, 1)
 
 	local consumed_height = row_height
 	if row.section and row.name ~= "section_offense" then

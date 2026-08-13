@@ -6,10 +6,16 @@ local ScoreboardViewSettings = mod:io_dofile("scores/scripts/mods/scores/views/s
 local FrameStyle = mod:io_dofile("scores/scripts/mods/scores/frame_style")
 local base_z = 100
 
-local scenegraph_definition = FrameStyle.scoreboard_scenegraph(UIWorkspaceSettings.screen, ScoreboardViewSettings, base_z)
+-- Panel geometry depends on the row set, which grows when plugins register rows,
+-- so the frame is sized from the resolved layout rather than the raw settings.
+-- This file is re-executed each time the view is created, so it picks up column
+-- and row changes; `adjust_size` corrects it again once the rows are measured.
+local PanelSettings = mod.scoreboard_layout_settings and mod:scoreboard_layout_settings() or ScoreboardViewSettings
+
+local scenegraph_definition = FrameStyle.scoreboard_scenegraph(UIWorkspaceSettings.screen, PanelSettings, base_z)
 
 local widget_definitions = {
-    scoreboard = FrameStyle.scoreboard_widget_definition(UIWidget, ScoreboardViewSettings, "scoreboard", 0, base_z),
+    scoreboard = FrameStyle.scoreboard_widget_definition(UIWidget, PanelSettings, "scoreboard", 0, base_z),
 }
 
 local legend_inputs = {

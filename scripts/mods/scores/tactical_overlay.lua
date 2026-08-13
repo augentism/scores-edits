@@ -58,10 +58,14 @@ local function loaded_scoreboard_rows()
 end
 
 local function install_scoreboard_scenegraph(definitions)
-	local tactical_settings = table.clone(ViewSettings)
-	local initial_height = mod.estimated_scoreboard_height and mod:estimated_scoreboard_height(loaded_scoreboard_rows())
-	if initial_height then
-		tactical_settings.scoreboard_size = {ViewSettings.scoreboard_size[1], initial_height}
+	-- Same resolved geometry the end-screen panel uses, so a multi-column row set
+	-- gets a multi-column frame here too. This runs once at hook_require time;
+	-- `adjust_size` re-applies width and height on every rebuild afterwards.
+	local tactical_settings = mod.scoreboard_layout_settings
+		and mod:scoreboard_layout_settings(loaded_scoreboard_rows())
+		or table.clone(ViewSettings)
+	if tactical_settings == ViewSettings then
+		tactical_settings = table.clone(ViewSettings)
 	end
 	local scenegraph = FrameStyle.scoreboard_scenegraph(UIWorkspaceSettings.screen, tactical_settings, base_z, {base_x, 20, base_z - 1})
 	local root = {
