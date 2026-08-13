@@ -16,11 +16,16 @@ local max_players = ScoreboardViewSettings.scoreboard_max_players or 4
 local frame_chrome_height = 55
 
 -- Multi-column geometry. A "block" is one label column plus its player columns.
--- Two blocks plus the gap come to 1600, comfortably inside the 1920-wide nominal
--- UI workspace; the label and player cells shrink so that fits.
+-- Two blocks plus the gap come to 1880, inside the 1920-wide nominal UI workspace.
+--
+-- The label column keeps its full single-column width on purpose. Plugin rows can
+-- carry labels pre-padded with tabs to a fixed pixel width -- Ovenproof builds
+-- "Total Ammo <pad> [ Taken | Wasted ]" that way, sized against this exact column
+-- -- so narrowing it makes every one of those labels overflow into the next cell.
+-- All the space for a second block comes out of the player columns instead.
 local multi_column_gap = 40
-local multi_column_header_width = 220
-local multi_column_block_width = 780
+local multi_column_header_width = ScoreboardViewSettings.scoreboard_column_header_width
+local multi_column_block_width = 920
 
 local function row_height(row, compact_level)
 	local header = row.name == "header" or row.player_header
@@ -175,7 +180,14 @@ mod.get_rows_in_groups = function(self, loaded_rows)
 	local last_plugin = nil
 	for _, row in ipairs(loaded_rows or {}) do
 		if valid_rows[row.name] and not inserted_rows[row.name] then
-			if self:is_own_scoreboard_row(row.name) or row.visible == false then
+			-- A child row draws inside its parent's line and has no label of its own,
+			-- so it is meaningless without that parent on screen. Parents drop out
+			-- when their own setting is off or they are declared hidden, and an
+			-- orphan left behind falls back to the next row's offset and draws on
+			-- top of it.
+			local orphaned = row.parent ~= nil and not inserted_rows[row.parent]
+
+			if self:is_own_scoreboard_row(row.name) or row.visible == false or orphaned then
 				add_hidden(row)
 			else
 				local plugin = row.mod

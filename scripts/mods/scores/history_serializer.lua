@@ -276,7 +276,12 @@ mod.save_scoreboard_history_entry = function(self, sorted_rows)
 	for group_index = 1, #(sorted_rows or {}) do
 		for row_position = 1, #sorted_rows[group_index] do
 			local row = sorted_rows[group_index][row_position]
-			if row.name ~= "header" and not row.score then
+			-- Section headers and the player header are layout furniture rebuilt by
+			-- `get_rows_in_groups` on load, not data. Saving them meant they came
+			-- back as ordinary rows and got rendered a second time, below the real
+			-- board, as a duplicate header plus "Offense"/"Defense"/"Teamwork" rows
+			-- full of zeroes.
+			if row.name ~= "header" and not row.score and not row.section and not row.player_header then
 				write_record(file, {
 					"#row",
 					row.name,
