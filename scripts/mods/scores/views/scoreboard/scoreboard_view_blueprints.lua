@@ -22,6 +22,10 @@ local function text_style(offset, size, alignment)
 		font_size = 16,
 		text_horizontal_alignment = alignment,
 		text_vertical_alignment = "center",
+		-- Every cell is a single line in a fixed-height row. Allowing a wrap means an
+		-- over-wide label silently grows a second line that draws over the row below
+		-- it, which is far worse than clipping.
+		word_wrap = false,
 		text_color = Color.terminal_text_header(255, true),
 		color = Color.white(200, true),
 		default_color = Color.white(200, true),

@@ -594,6 +594,9 @@ mod.create_row_widget = function(self, index, current_offset, visible_rows, sour
 	local widget = obj[create_widget_callback](obj, "scoreboard_row_"..row.name, definition)
 	widget.alpha_multiplier = 0
 	widget.offset = widget_offset(end_view, row, current_offset, widgets_by_name, scenegraph, scenegraph_ids)
+	-- Recorded so a scrolling container can tell whether the whole row still fits
+	-- inside the viewport; there is no mask to clip a half-visible one.
+	widget._scores_row_height = row_height
 	attach_player_header_hotspots(widget, widgets_by_name, model, text_by_player, icon_by_text, account_by_text, row, is_history, end_view, obj)
 
 	if is_header or row.is_text or has_long_cell_text then

@@ -10,8 +10,14 @@ local scoreboard_view_settings = {
     scoreboard_row_height = 26,
     scoreboard_row_header_height = 42,
     scoreboard_row_big_height = 36,
-    scoreboard_column_width = 172,
-    scoreboard_column_header_width = 282,
+    -- The label column is 320 rather than 282 because plugin rows arrive with
+    -- labels already padded to a fixed pixel width -- Ovenproof builds
+    -- "Total Ammo <pad> [ Taken | Wasted ]" sized against the original scoreboard
+    -- mod's 300px label column. At 282 those labels wrapped onto a second line and
+    -- drew over the row beneath. Player columns give up the difference so the
+    -- single-column panel still totals exactly 1000 (320 + 4 x 170).
+    scoreboard_column_width = 170,
+    scoreboard_column_header_width = 320,
     scoreboard_horizontal_padding = scoreboard_horizontal_padding,
     scoreboard_end_view_top_offset = -100,
     scoreboard_table_top_padding = 20,

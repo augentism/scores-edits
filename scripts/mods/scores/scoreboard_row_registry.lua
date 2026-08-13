@@ -44,12 +44,30 @@ mod.collect_scoreboard_rows = function(self, loaded_rows)
 			if template.name and index[template.name] then
 				error("duplicate loaded scoreboard row name: "..template.name)
 			end
-			local entry = self:register_scoreboard_row(self, template)
-			entries[#entries+1] = entry
-			index[entry.name] = entry
+			if not self:is_layout_furniture_row(template.name) then
+				local entry = self:register_scoreboard_row(self, template)
+				entries[#entries+1] = entry
+				index[entry.name] = entry
+			end
 		end
 		return entries
 	end
+end
+
+-- Section headers and the player header are rebuilt by `get_rows_in_groups` on
+-- every build, so a saved copy is a duplicate, not data. Older history files were
+-- written before the serializer stopped saving them and still contain them; left
+-- alone they come back as ordinary rows and render a second player header plus
+-- zero-filled "Offense"/"Defense"/"Teamwork" rows under the real board. Filtering
+-- on load is what repairs those existing files.
+mod.is_layout_furniture_row = function(self, name)
+	if type(name) ~= "string" then
+		return false
+	end
+
+	return name == "header"
+		or name == "player_header"
+		or string.sub(name, 1, 8) == "section_"
 end
 
 -- Rows contributed by other mods (the plugin protocol the original scoreboard mod
