@@ -15,23 +15,34 @@ local DMF = get_mod("DMF")
 --
 -- A real scoreboard mod always wins the lookup, so having both installed degrades
 -- to the old behaviour instead of fighting over the plugins.
-local alias = DMF:persistent_table("scores_scoreboard_alias")
-if not alias.original then
-	-- Parked across reloads so re-running this file replaces the wrapper rather
-	-- than nesting a new one around the previous wrapper.
-	alias.original = get_mod
+-- Re-capture the real `get_mod` whenever the global is not our own wrapper. A mod
+-- reload re-executes DMF too, which builds a fresh `_mods` registry and a fresh
+-- `get_mod` closing over it; a cached copy of the previous one keeps answering out
+-- of the abandoned registry and every lookup silently returns a stale mod object.
+-- Comparing against our stored wrapper is what distinguishes "DMF replaced it"
+-- (recapture) from "only this mod reloaded" (keep, so wrappers never nest).
+local previous_wrapper = rawget(_G, "_scores_get_mod_wrapper")
+local real_get_mod = rawget(_G, "_scores_get_mod_original")
+if real_get_mod == nil or rawget(_G, "get_mod") ~= previous_wrapper then
+	real_get_mod = rawget(_G, "get_mod")
+	_G._scores_get_mod_original = real_get_mod
 end
 
-_G.get_mod = function(name)
-	local found = alias.original(name)
+local function scoreboard_alias(name)
+	local found = real_get_mod(name)
 	if found then
 		return found
 	end
 
+	-- Resolved through the live registry rather than the `mod` upvalue, so this
+	-- can never hand a plugin a mod object left over from a previous load.
 	if name == "scoreboard" then
-		return mod
+		return real_get_mod("scores")
 	end
 end
+
+_G._scores_get_mod_wrapper = scoreboard_alias
+_G.get_mod = scoreboard_alias
 
 local function load(path)
 	return mod:io_dofile("scores/scripts/mods/scores/"..path)
@@ -73,6 +84,14 @@ function mod.reload_mods()
 end
 
 function mod.update(main_dt)
+	-- DMF keeps calling `update` on a mod whose script aborted part-way through
+	-- loading, and each call then throws on the first missing method -- one error
+	-- per frame, forever, burying the real failure. `initialized` is set by the
+	-- last line of this file, so it is the signal that every submodule loaded.
+	if not mod.initialized then
+		return
+	end
+
 	mod._player_account_cache_timer = (mod._player_account_cache_timer or 0) - (main_dt or 0)
 	if mod._player_account_cache_timer <= 0 then
 		mod._player_account_cache_timer = 1
