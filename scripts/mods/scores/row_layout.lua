@@ -32,38 +32,17 @@ local multi_column_block_width = 920
 -- full row set and running off the bottom of the screen.
 local history_preview_height = 760
 
+-- Delegates to the same table row_widget.lua draws with, so the measuring pass and
+-- the drawing pass can never disagree about how tall a row is. row_widget loads
+-- after this file, but every caller here runs at build time, well after that.
 local function row_height(row, compact_level)
-	local header = row.name == "header" or row.player_header
-	local height = (row.name == "score" or row.big) and 42
-		or row.player_header and 78
-		or header and ScoreboardViewSettings.scoreboard_row_header_height
-		or row.section and 38
-		or row.score and ScoreboardViewSettings.scoreboard_row_big_height
-		or 25
-
-	if compact_level >= 2 and not header then
-		if row.name == "score" or row.big then
-			height = 30
-		elseif row.section then
-			height = 30
-		elseif row.score then
-			height = 28
-		else
-			height = 17
-		end
-	elseif compact_level >= 1 and not header then
-		if row.name == "score" or row.big then
-			height = 36
-		elseif row.section then
-			height = 34
-		elseif row.score then
-			height = 32
-		else
-			height = 21
-		end
+	if mod.row_metrics then
+		return (mod.row_metrics(row, compact_level))
 	end
 
-	return height
+	return row.player_header and 78
+		or (row.name == "header") and ScoreboardViewSettings.scoreboard_row_header_height
+		or 25
 end
 
 local function section_spacing(compact_level)
@@ -198,7 +177,8 @@ mod.get_rows_in_groups = function(self, loaded_rows)
 				local plugin = row.mod
 				if plugin ~= last_plugin then
 					last_plugin = plugin
-					add_section("section_plugin_"..tostring(plugin and plugin.name), self:plugin_section_label(plugin))
+					local plugin_key = self.scoreboard_row_plugin_names and self.scoreboard_row_plugin_names[plugin]
+					add_section("section_plugin_"..tostring(plugin_key or row.name), self:plugin_section_label(plugin))
 				end
 				rows[#rows+1] = row
 				inserted_rows[row.name] = true
@@ -234,11 +214,17 @@ end
 mod.plugin_section_label = function(self, plugin)
 	if plugin and plugin ~= self and plugin.localize then
 		local ok, localized = pcall(plugin.localize, plugin, "mod_name")
-		if ok and localized and localized ~= "<>" and localized ~= "<mod_name>" then
+		if ok and type(localized) == "string" and localized ~= "" and localized ~= "<>" and localized ~= "<mod_name>" then
 			return localized
 		end
 
-		return tostring(plugin.name)
+		-- DMF leaves no name on the mod object, so fall back to the registry key
+		-- captured at registration. `tostring(plugin.name)` used to end up here and
+		-- put a section header reading "nil" on the board.
+		local registry_name = self.scoreboard_row_plugin_names and self.scoreboard_row_plugin_names[plugin]
+		if type(registry_name) == "string" and registry_name ~= "" then
+			return registry_name
+		end
 	end
 
 	-- History entries lose the owning mod, so plugin rows read back as ours.

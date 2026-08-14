@@ -57,16 +57,20 @@ end
 
 local function row_metrics(row, compact_level)
 	local header = row.name == "header" or row.player_header
+	-- Section headers take a normal row's height, not an oversized one. They are
+	-- separated by `section_spacing` already, so the extra height only cost rows on
+	-- screen. The font stays a couple of points above body text to keep the break
+	-- readable.
 	local row_height = (row.name == "score" or row.big) and 42
 		or row.player_header and 78
 		or header and ViewSettings.scoreboard_row_header_height
-		or row.section and 38
+		or row.section and 25
 		or row.score and ViewSettings.scoreboard_row_big_height
 		or 25
 	local font_size = row.big and 34
 		or row.player_header and 25
 		or header and 18
-		or row.section and 24
+		or row.section and 20
 		or row.score and 28
 		or 18
 
@@ -75,8 +79,8 @@ local function row_metrics(row, compact_level)
 			row_height = 30
 			font_size = 26
 		elseif row.section then
-			row_height = 30
-			font_size = 20
+			row_height = 17
+			font_size = 14
 		elseif row.score then
 			row_height = 28
 			font_size = 20
@@ -89,8 +93,8 @@ local function row_metrics(row, compact_level)
 			row_height = 36
 			font_size = 30
 		elseif row.section then
-			row_height = 34
-			font_size = 22
+			row_height = 21
+			font_size = 17
 		elseif row.score then
 			row_height = 32
 			font_size = 24
@@ -102,6 +106,11 @@ local function row_metrics(row, compact_level)
 
 	return row_height, font_size, header
 end
+
+-- Exported so row_layout.lua can measure rows with the same table that draws them.
+-- It used to keep its own copy of the heights for the estimate pass, which is two
+-- places to remember when a height changes.
+mod.row_metrics = row_metrics
 
 local function section_spacing(compact_level)
 	return compact_level >= 2 and dense_section_spacing

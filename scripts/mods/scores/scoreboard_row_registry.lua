@@ -15,6 +15,7 @@ local ScoreboardDefinitions = mod:io_dofile("scores/scripts/mods/scores/ui_defin
 mod.registered_scoreboard_rows = {}
 mod.scoreboard_row_index = {}
 mod.scoreboard_row_plugins = {}
+mod.scoreboard_row_plugin_names = setmetatable({}, {__mode = "k"})
 mod.scoreboard_rows = mod:io_dofile("scores/scripts/mods/scores/scoreboard_row_definitions")
 
 
@@ -23,6 +24,7 @@ mod.collect_scoreboard_rows = function(self, loaded_rows)
 		self.registered_scoreboard_rows = {}
 		self.scoreboard_row_index = {}
 		self.scoreboard_row_plugins = {}
+		self.scoreboard_row_plugin_names = setmetatable({}, {__mode = "k"})
 		self._own_scoreboard_row_names = nil
 		for _, template in pairs(mod.scoreboard_rows) do
 			if not template.name then
@@ -88,14 +90,20 @@ mod.collect_plugin_scoreboard_rows = function(self)
 	-- `mods_unloading_order` is built by inserting each mod at position 1, so it is
 	-- reverse load order; walk it backwards to get load order back.
 	for i = #unloading_order, 1, -1 do
-		local plugin = registry[unloading_order[i]]
+		local plugin_name = unloading_order[i]
+		local plugin = registry[plugin_name]
 		if type(plugin) == "table" and plugin ~= self and type(plugin.scoreboard_rows) == "table" then
-			self:register_plugin_scoreboard_rows(plugin)
+			-- DMF does not put its registry key on the mod object -- this mod only has
+			-- a `.name` because it assigns one itself -- so the key is captured here.
+			-- Without it the section header for these rows read "nil".
+			self.scoreboard_row_plugin_names[plugin] = plugin_name
+			self:register_plugin_scoreboard_rows(plugin, plugin_name)
 		end
 	end
 end
 
-mod.register_plugin_scoreboard_rows = function(self, plugin)
+mod.register_plugin_scoreboard_rows = function(self, plugin, plugin_name)
+	plugin_name = plugin_name or self.scoreboard_row_plugin_names[plugin] or "unknown mod"
 	local templates = plugin.scoreboard_rows
 	local registered = 0
 
@@ -107,13 +115,13 @@ mod.register_plugin_scoreboard_rows = function(self, plugin)
 	for _, template in ipairs(templates) do
 		local name = type(template) == "table" and template.name
 		if not name then
-			self:warning("Skipped an unnamed scoreboard row from '%s'", tostring(plugin.name))
+			self:warning("Skipped an unnamed scoreboard row from '%s'", plugin_name)
 		elseif self.scoreboard_row_index[name] then
 			-- A plugin must not shadow one of our rows or another plugin's: the index
 			-- is what every stat write resolves through, so the loser would silently
 			-- feed the winner's row. Skip rather than error -- one bad plugin should
 			-- not take the whole scoreboard down.
-			self:warning("Skipped duplicate scoreboard row '%s' from '%s'", tostring(name), tostring(plugin.name))
+			self:warning("Skipped duplicate scoreboard row '%s' from '%s'", tostring(name), plugin_name)
 		else
 			local entry = self:register_scoreboard_row(plugin, template)
 			local index = #self.registered_scoreboard_rows + 1
@@ -128,13 +136,13 @@ mod.register_plugin_scoreboard_rows = function(self, plugin)
 	if total > #templates then
 		self:warning(
 			"'%s' declares %s scoreboard rows outside the array part; those are ignored (order is required)",
-			tostring(plugin.name), tostring(total - #templates)
+			plugin_name, tostring(total - #templates)
 		)
 	end
 
 	if registered > 0 then
 		self.scoreboard_row_plugins[#self.scoreboard_row_plugins + 1] = plugin
-		self:info("Registered %s scoreboard rows from '%s'", tostring(registered), tostring(plugin.name))
+		self:info("Registered %s scoreboard rows from '%s'", tostring(registered), plugin_name)
 	end
 end
 
