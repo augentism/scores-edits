@@ -300,7 +300,11 @@ mod.save_scoreboard_history_entry = function(self, sorted_rows)
 					row.icon,
 					row.icon_package,
 					row.icon_width,
-					n = 17,
+					-- Appended, so entries written before this still parse: the reader
+					-- treats a missing trailing field as nil. Without it an is_text row
+					-- came back numeric and rendered "0" where its text belonged.
+					row.is_text,
+					n = 18,
 				})
 				if type(row.data) == "table" then
 					for account_id, data in pairs(row.data) do
@@ -428,6 +432,7 @@ mod.load_scoreboard_history_entry = function(self, path, date, only_head)
 				icon = optional_field(fields[15]),
 				icon_package = optional_field(fields[16]),
 				icon_width = optional_field(fields[17]),
+				is_text = optional_bool(fields[18]),
 				data = {},
 			}
 			backfill_row_metadata(active_row)

@@ -124,6 +124,48 @@ local function set_cell_style(pass_template, pass_index, font_size, row_height)
 	style.size[2] = row_height
 end
 
+-- U+200A HAIR SPACE, in UTF-8. Plugins pad with it to force an "empty" cell past
+-- host code that treats an empty string as missing -- Ovenproof writes one into
+-- each cell of its `blank_*` spacer rows.
+local hair_space = "\226\128\138"
+
+local function is_blank_text(text)
+	if text == nil then
+		return true
+	end
+	if type(text) ~= "string" then
+		return false
+	end
+
+	local stripped = string.gsub(text, hair_space, "")
+	stripped = string.gsub(stripped, "%s", "")
+
+	return stripped == ""
+end
+
+-- True when nothing in the row carries information: every player cell is zero or
+-- blank. Paired with a blank label this identifies a spacer row.
+local function row_has_no_values(model, player_count)
+	local data = model.display_data
+	for player_index = 1, player_count do
+		local account_id = mod:account_id_from_player(model.players[player_index])
+		local row_data = account_id and data and data[account_id]
+		if row_data then
+			if (tonumber(row_data.score) or 0) ~= 0 then
+				return false
+			end
+			if not is_blank_text(row_data.text_data) then
+				return false
+			end
+			if not is_blank_text(row_data.text) then
+				return false
+			end
+		end
+	end
+
+	return true
+end
+
 local function clear_player_cells(pass_template, text_by_player, icon_by_text, account_by_text)
 	for i = 1, max_players do
 		local text_index = text_by_player[i]
@@ -545,7 +587,18 @@ mod.create_row_widget = function(self, index, current_offset, visible_rows, sour
 	local zero_setting = mod:get("zero_values")
 	local worst_setting = mod:get("worst_values")
 	local has_long_cell_text = false
-	if not is_header and not row.section and #model.children == 0 then
+	-- A row with no label whose every cell is zero is a spacer, not data. Plugins
+	-- pad their layout with these (Ovenproof's `blank_*` rows), and they only stay
+	-- blank while the plugin keeps writing a hair space into each cell -- before it
+	-- seeds them, and for any row read back out of history, the cells fall through
+	-- to the numeric formatter and render a stray "0" under no heading.
+	local is_spacer_row = not is_header
+		and not row.section
+		and not row.player_header
+		and is_blank_text(model.label)
+		and row_has_no_values(model, player_count)
+
+	if not is_header and not row.section and #model.children == 0 and not is_spacer_row then
 		for player_index = 1, player_count do
 			local player = model.players[player_index]
 			local account_id = mod:account_id_from_player(player)
