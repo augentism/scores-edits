@@ -1,6 +1,6 @@
 local mod = get_mod("scores")
 
-mod.version = "1.2.0-test1"
+mod.version = "1.2.0-test2"
 
 local DESCRIPTION_COLORS = {
 	label = "255,170,32",
@@ -105,12 +105,12 @@ return {
 		"Spalten der Anzeigetafel"
 	),
 	scoreboard_columns_description = localized(
-		"How many side-by-side columns of rows the scoreboard uses. Automatic splits into two columns only when the rows would not otherwise fit.",
-		"记分板使用多少并排的行列。自动模式仅在行数放不下时才拆分为两列。",
-		"Сколько столбцов строк использует таблица. «Автоматически» разделяет на два столбца, только если строки иначе не помещаются.",
-		"Nombre de colonnes de lignes affichées côte à côte. Le mode automatique n'utilise deux colonnes que si les lignes ne tiennent pas autrement.",
-		"Cuántas columnas de filas se muestran una al lado de la otra. El modo automático solo divide en dos columnas si las filas no caben.",
-		"Wie viele nebeneinanderliegende Zeilenspalten die Anzeigetafel nutzt. Automatisch teilt nur dann in zwei Spalten, wenn die Zeilen sonst nicht passen."
+		"Only affects the end-of-mission board, which can show its rows in two side-by-side columns. Everywhere else uses a single column that scrolls.",
+		"仅影响任务结算记分板，它可以将行分成并排的两列显示。其他位置均使用可滚动的单列。",
+		"Влияет только на итоговую таблицу миссии, которая может показывать строки в двух столбцах. В остальных местах используется один прокручиваемый столбец.",
+		"N'affecte que le tableau de fin de mission, qui peut afficher ses lignes sur deux colonnes côte à côte. Ailleurs, une seule colonne défilante est utilisée.",
+		"Solo afecta al marcador de fin de misión, que puede mostrar sus filas en dos columnas. En el resto se usa una sola columna con desplazamiento.",
+		"Betrifft nur die Abschlusstafel, die ihre Zeilen in zwei nebeneinanderliegenden Spalten zeigen kann. Überall sonst wird eine einzelne, scrollbare Spalte verwendet."
 	),
 	scoreboard_columns_auto = localized("Automatic", "自动", "Автоматически", "Automatique", "Automático", "Automatisch"),
 	scoreboard_columns_one = localized("One column", "一列", "Один столбец", "Une colonne", "Una columna", "Eine Spalte"),

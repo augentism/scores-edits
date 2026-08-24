@@ -27,10 +27,11 @@ local multi_column_gap = 40
 local multi_column_header_width = ScoreboardViewSettings.scoreboard_column_header_width
 local multi_column_block_width = 920
 
--- Matches the saved-run list's `grid_size[2]` in history_view_settings.lua, so the
--- preview panel is the same height as the list beside it instead of growing to the
--- full row set and running off the bottom of the screen.
-local history_preview_height = 760
+-- Read from the history view's own settings rather than restated here: the preview
+-- panel is sized to match the saved-run list it sits beside, and a second copy of
+-- that number is one nobody remembers to change.
+local HistoryViewSettings = mod:io_dofile("scores/scripts/mods/scores/views/history/history_view_settings")
+local history_preview_height = HistoryViewSettings.grid_size and HistoryViewSettings.grid_size[2] or 760
 
 -- Delegates to the same table row_widget.lua draws with, so the measuring pass and
 -- the drawing pass can never disagree about how tall a row is. row_widget loads
