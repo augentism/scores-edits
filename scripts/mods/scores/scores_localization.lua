@@ -1,6 +1,6 @@
 local mod = get_mod("scores")
 
-mod.version = "1.2.0-test2"
+mod.version = "1.2.0-test3"
 
 local DESCRIPTION_COLORS = {
 	label = "255,170,32",

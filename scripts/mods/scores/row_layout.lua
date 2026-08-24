@@ -652,12 +652,6 @@ mod.adjust_size = function(self, total_height, scoreboard_widget, scenegraph, ro
 	local scoreboard_id = scenegraph_ids and scenegraph_ids.scoreboard or "scoreboard"
 	local rows_id = scenegraph_ids and scenegraph_ids.rows or "scoreboard_rows"
 	local scoreboard_graph = rawget(scenegraph, scoreboard_id)
-	local scoreboard_z = scoreboard_graph and scoreboard_graph.position and scoreboard_graph.position[3] or base_z
-	local title_settings = {
-		scoreboard_size = {width, height},
-		scoreboard_title_inset = ScoreboardViewSettings.scoreboard_title_inset,
-	}
-	FrameStyle.update_title_offset(style.style_id_7, title_settings, 0, height, scoreboard_z, 210)
 	FrameStyle.update_backdrop_opacity(scoreboard_widget)
 
 	if scoreboard_graph then

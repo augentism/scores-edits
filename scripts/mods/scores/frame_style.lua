@@ -38,30 +38,9 @@ local function texture_pass(value, offset, size, color)
 	}
 end
 
-local function title_pass(value, offset, size)
-	local style = table.clone(UIFontSettings.header_1)
-	style.horizontal_alignment = "center"
-	style.vertical_alignment = "center"
-	style.text_horizontal_alignment = "left"
-	style.text_vertical_alignment = "center"
-	style.offset = offset
-	style.size = size
-
-	return {
-		pass_type = "text",
-		value = value,
-		style = style,
-	}
-end
-
-local function title_offset(settings, base_x, height, base_z, title_z)
-	local inset = settings.scoreboard_title_inset
-	return {
-		base_x - settings.scoreboard_size[1] / 2 + inset[1],
-		-height / 2 + inset[2],
-		base_z + title_z,
-	}
-end
+-- The board carries no title pass: each view already names itself, and inside
+-- the end screen and the tactical overlay a second "Scores" heading was only
+-- spending vertical space.
 
 FrameStyle.scoreboard_passes = function(settings, base_x, base_z, z_offsets)
 	local width = settings.scoreboard_size[1]
@@ -108,11 +87,6 @@ FrameStyle.scoreboard_passes = function(settings, base_x, base_z, z_offsets)
 			{frame_width, 36},
 			Color.gray(255, true)
 		),
-		title_pass(
-			mod:localize("scoreboard_title"),
-			title_offset(settings, base_x, height, base_z, offsets.title or 210),
-			settings.scoreboard_title_size
-		),
 	}
 
 	return passes
@@ -122,12 +96,6 @@ FrameStyle.update_backdrop_opacity = function(scoreboard_widget)
 	local style = scoreboard_widget and scoreboard_widget.style and scoreboard_widget.style.style_id_1
 	if style then
 		style.visible = mod:get("opaque_scoreboard_backdrop") == true
-	end
-end
-
-FrameStyle.update_title_offset = function(style, settings, base_x, height, base_z, title_z)
-	if style then
-		style.offset = title_offset(settings, base_x, height, base_z, title_z)
 	end
 end
 

@@ -32,14 +32,17 @@ local scenegraph_definition = {
 		horizontal_alignment = "left",
 		parent = "screen",
 		size = {grid_width + preview_gap + ScoreboardViewSettings.scoreboard_size[1], grid_height},
-		position = {160, 198, 1},
+		-- Both anchors come from the view settings, which derive them from the
+		-- workspace, so the panels grow into whatever vertical room there is
+		-- instead of sitting below the stock top-panel band this view never draws.
+		position = {160, ViewSettings.content_top, 1},
 	},
 	title_text = {
 		vertical_alignment = "top",
 		horizontal_alignment = "left",
 		parent = "screen",
-		size = {520, 60},
-		position = {160, 128, 2},
+		size = {520, ViewSettings.title_height},
+		position = {160, ViewSettings.title_y, 2},
 	},
 	background = {
 		vertical_alignment = "top",
