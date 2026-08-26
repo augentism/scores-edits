@@ -3,13 +3,26 @@ local mod = get_mod("scores")
 local CLASS = CLASS
 local Havoc = mod:original_require("scripts/utilities/havoc")
 
-local function havoc_rank_from_mechanism_data(mechanism_data)
+local function parsed_havoc_data(mechanism_data)
 	if type(mechanism_data) ~= "table" or not mechanism_data.havoc_data then
 		return nil
 	end
 
 	local ok, havoc_data = pcall(Havoc.parse_data, mechanism_data.havoc_data)
-	return ok and havoc_data and tonumber(havoc_data.havoc_rank) or nil
+	return ok and type(havoc_data) == "table" and havoc_data or nil
+end
+
+local function havoc_rank_from_mechanism_data(mechanism_data)
+	local havoc_data = parsed_havoc_data(mechanism_data)
+	return havoc_data and tonumber(havoc_data.havoc_rank) or nil
+end
+
+-- The rank is only part of what a havoc mission carries; the modifiers are the
+-- part that actually explains the numbers on the board.
+local function havoc_modifiers_from_mechanism_data(mechanism_data)
+	local havoc_data = parsed_havoc_data(mechanism_data)
+	local modifiers = havoc_data and havoc_data.modifiers
+	return type(modifiers) == "table" and #modifiers > 0 and modifiers or nil
 end
 
 local function current_mechanism_data()
@@ -40,9 +53,9 @@ mod.capture_mission_metadata = function(self, supplied_data, supplied_mission_na
 	assign(self.set_mission_name, mission_name)
 	assign(self.set_mission_circumstance, value("circumstance_name"))
 	assign(self.set_mission_challenge, value("challenge"))
-	assign(self.set_mission_havoc_rank, havoc_rank_from_mechanism_data(
-		data.havoc_data and data or live_data
-	))
+	local havoc_source = data.havoc_data and data or live_data
+	assign(self.set_mission_havoc_rank, havoc_rank_from_mechanism_data(havoc_source))
+	assign(self.set_mission_havoc_modifiers, havoc_modifiers_from_mechanism_data(havoc_source))
 	assign(self.set_mission_resistance, value("resistance"))
 end
 

@@ -598,7 +598,7 @@ mod.create_row_widget = function(self, index, current_offset, visible_rows, sour
 		and is_blank_text(model.label)
 		and row_has_no_values(model, player_count)
 
-	if not is_header and not row.section and #model.children == 0 and not is_spacer_row then
+	if not is_header and not row.section and not row.info and #model.children == 0 and not is_spacer_row then
 		for player_index = 1, player_count do
 			local player = model.players[player_index]
 			local account_id = mod:account_id_from_player(player)

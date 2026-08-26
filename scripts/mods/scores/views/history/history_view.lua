@@ -307,6 +307,9 @@ ScoreboardHistoryView._open_entry_preview = function(self, widget)
 	self._logged_history_hover = nil
 
 	self.loaded_players = self:_preview_players(self.entry, widget.file)
+	-- The board builds its havoc section from whichever mission is on screen, so the
+	-- previewed run's modifiers stand in for the live ones while this view is open.
+	mod._history_havoc_modifiers = self.entry and self.entry.mission_havoc_modifiers or nil
 	self.loaded_rows = mod:collect_scoreboard_rows(self.entry.rows)
 	self.row_widgets = {}
 	self.scoreboard_widget = self._widgets_by_name.scoreboard
@@ -576,6 +579,7 @@ ScoreboardHistoryView._draw_preview_rows = function(self, dt, input_service)
 end
 
 ScoreboardHistoryView.on_exit = function(self)
+	mod._history_havoc_modifiers = nil
 	if self._popup_menu then
 		self:_remove_popup_menu()
 	end

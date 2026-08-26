@@ -224,6 +224,12 @@ mod.player_account_name = function(self, player, player_name)
 end
 
 mod.row_label = function(self, row, groups, is_history)
+	if row.raw_text then
+		-- Already display text, not a key. Going through localize would also run it
+		-- through string.format, where a literal % resolves the whole entry to nil.
+		return row.text
+	end
+
 	local localized = row.mod:localize(row.text)
 	if localized == "<>" or localized == "<"..tostring(row.text)..">" then
 		localized = nil

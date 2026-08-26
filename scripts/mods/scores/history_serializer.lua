@@ -2,6 +2,7 @@ local mod = get_mod("scores")
 
 local UISettings = mod:original_require("scripts/settings/ui/ui_settings")
 local ProfileSnapshot = mod:io_dofile("scores/scripts/mods/scores/profile_snapshot")
+local HavocModifiers = mod:io_dofile("scores/scripts/mods/scores/havoc_modifiers")
 
 mod.pending_history_profile_snapshots = mod.pending_history_profile_snapshots or {}
 local max_players = 7
@@ -229,7 +230,10 @@ mod.save_scoreboard_history_entry = function(self, sorted_rows)
 		timer,
 		self.mission_challenge,
 		self.mission_havoc_rank,
-		n = 8,
+		-- Appended, so entries written before this still parse: the reader treats a
+		-- missing trailing field as nil.
+		HavocModifiers.encode(self.mission_havoc_modifiers),
+		n = 9,
 	})
 
 	local player_count = 0
@@ -379,6 +383,7 @@ mod.load_scoreboard_history_entry = function(self, path, date, only_head)
 			entry.timer = format_duration(fields[6])
 			entry.mission_challenge = fields[7] or ""
 			entry.mission_havoc_rank = optional_field(fields[8])
+			entry.mission_havoc_modifiers = HavocModifiers.decode(optional_field(fields[9]))
 			mode = nil
 
 		elseif marker == "#players" then

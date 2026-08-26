@@ -3,6 +3,7 @@ local mod = get_mod("scores")
 local ScoreboardDefinitions = mod:io_dofile("scores/scripts/mods/scores/ui_definitions")
 local ScoreboardViewSettings = mod:io_dofile("scores/scripts/mods/scores/views/scoreboard/scoreboard_view_settings")
 local FrameStyle = mod:io_dofile("scores/scripts/mods/scores/frame_style")
+local HavocModifiers = mod:io_dofile("scores/scripts/mods/scores/havoc_modifiers")
 
 local base_z = 100
 local compact_row_threshold = 15
@@ -187,7 +188,34 @@ mod.get_rows_in_groups = function(self, loaded_rows)
 		end
 	end
 
+	-- Mission context rather than per-player stats, so it goes last where it can be
+	-- scrolled to, and renders as label-only `info` rows with no player cells.
+	local modifiers = self.active_havoc_modifiers and self:active_havoc_modifiers()
+	local labels = modifiers and HavocModifiers.labels(modifiers) or nil
+	if labels and #labels > 0 then
+		add_section("section_havoc_modifiers", self:localize("section_havoc_modifiers"))
+		for i = 1, #labels do
+			rows[#rows+1] = {
+				mod = mod,
+				name = "havoc_modifier_"..i,
+				text = labels[i],
+				-- Already a finished sentence from the game's own settings, and it can
+				-- contain a literal %, which would break a trip through localize.
+				raw_text = true,
+				info = true,
+				validation = ScoreboardDefinitions.validation_types.ASC,
+				validation_type = "ASC",
+			}
+		end
+	end
+
 	return sorted
+end
+
+-- Whichever mission the board is currently showing: the saved run being previewed
+-- in the history view, otherwise the one being played.
+mod.active_havoc_modifiers = function(self)
+	return self._history_havoc_modifiers or self.mission_havoc_modifiers
 end
 
 -- Names this mod declares itself. Read from the definitions table rather than the
