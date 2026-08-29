@@ -236,6 +236,13 @@ mod.save_scoreboard_history_entry = function(self, sorted_rows)
 		n = 9,
 	})
 
+	-- Its own record rather than a field: the payload is itself ';'-delimited and
+	-- write_record does not escape, so inside #mission it would inject extra
+	-- fields. Everything after the marker is one verbatim value.
+	if type(self.mission_havoc_data) == "string" and self.mission_havoc_data ~= "" then
+		write_record(file, {"#havoc", self.mission_havoc_data})
+	end
+
 	local player_count = 0
 	for _ in pairs(players) do
 		player_count = player_count + 1
@@ -384,6 +391,11 @@ mod.load_scoreboard_history_entry = function(self, path, date, only_head)
 			entry.mission_challenge = fields[7] or ""
 			entry.mission_havoc_rank = optional_field(fields[8])
 			entry.mission_circumstances = Circumstances.decode(optional_field(fields[9]))
+			mode = nil
+
+		elseif marker == "#havoc" then
+			-- Rejoined rather than read as fields[2]: the payload contains ';' itself.
+			entry.mission_havoc_data = optional_field(table.concat(fields, ";", 2))
 			mode = nil
 
 		elseif marker == "#players" then

@@ -18,6 +18,10 @@ local Circumstances = {}
 -- Present on every havoc mission and not a modifier anyone means -- it is the
 -- "this is the hardest difficulty" marker the mission board uses.
 local ignored = {
+	-- "The Emperor's Fading light (I)" and "(II)". Every havoc mission carries one
+	-- of the two and which one follows from the rank, so listing them says nothing
+	-- a reader cannot already see next to it.
+	mutator_increased_difficulty = true,
 	mutator_highest_difficulty = true,
 	default = true,
 	nil_ = true,

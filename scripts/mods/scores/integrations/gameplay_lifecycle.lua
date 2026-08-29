@@ -59,6 +59,10 @@ mod.capture_mission_metadata = function(self, supplied_data, supplied_mission_na
 	local havoc_source = data.havoc_data and data or live_data
 	assign(self.set_mission_havoc_rank, havoc_rank_from_mechanism_data(havoc_source))
 	assign(self.set_mission_circumstances, circumstances_from_mechanism_data(havoc_source))
+	-- Kept verbatim as well as parsed. It is one short line, and every future
+	-- question about a saved havoc run -- theme, faction, the scaling modifiers --
+	-- is answerable from it without needing to have known to store that field.
+	assign(self.set_mission_havoc_data, type(havoc_source) == "table" and havoc_source.havoc_data or nil)
 	assign(self.set_mission_resistance, value("resistance"))
 end
 

@@ -45,6 +45,10 @@ mod.set_mission_circumstances = function(self, mission_circumstances)
 	self.mission_circumstances = mission_circumstances
 end
 
+mod.set_mission_havoc_data = function(self, mission_havoc_data)
+	self.mission_havoc_data = mission_havoc_data
+end
+
 mod.set_mission_resistance = function(self, mission_resistance)
 	self.mission_resistance = mission_resistance
 end
