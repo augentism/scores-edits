@@ -33,6 +33,12 @@ local function is_usable(name)
 		and name ~= ""
 		and name ~= "nil"
 		and not ignored[name]
+		-- Circumstance names are plain identifiers -- circ_exp_rotten_armor,
+		-- darkness_01. A dot means this is a havoc scaling modifier from the
+		-- `name.level` payload that briefly occupied the same field, so it is not
+		-- ours to display. Rejecting it here keeps those older entries from
+		-- rendering "Reduce toughness.4" as if it were a circumstance.
+		and not string.find(name, ".", 1, true)
 end
 
 local function humanised(name)
