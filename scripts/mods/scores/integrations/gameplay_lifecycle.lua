@@ -2,6 +2,7 @@ local mod = get_mod("scores")
 
 local CLASS = CLASS
 local Havoc = mod:original_require("scripts/utilities/havoc")
+local Circumstances = mod:io_dofile("scores/scripts/mods/scores/circumstances")
 
 local function parsed_havoc_data(mechanism_data)
 	if type(mechanism_data) ~= "table" or not mechanism_data.havoc_data then
@@ -17,12 +18,14 @@ local function havoc_rank_from_mechanism_data(mechanism_data)
 	return havoc_data and tonumber(havoc_data.havoc_rank) or nil
 end
 
--- The rank is only part of what a havoc mission carries; the modifiers are the
--- part that actually explains the numbers on the board.
-local function havoc_modifiers_from_mechanism_data(mechanism_data)
+-- Circumstances come from two places and mean the same thing to a player: a normal
+-- mission names one directly, a havoc mission stacks several inside its payload,
+-- which Havoc.parse_data already splits out for us.
+local function circumstances_from_mechanism_data(mechanism_data)
 	local havoc_data = parsed_havoc_data(mechanism_data)
-	local modifiers = havoc_data and havoc_data.modifiers
-	return type(modifiers) == "table" and #modifiers > 0 and modifiers or nil
+	local named = type(mechanism_data) == "table" and mechanism_data.circumstance_name or nil
+
+	return Circumstances.merge(named, havoc_data and havoc_data.circumstances)
 end
 
 local function current_mechanism_data()
@@ -55,7 +58,7 @@ mod.capture_mission_metadata = function(self, supplied_data, supplied_mission_na
 	assign(self.set_mission_challenge, value("challenge"))
 	local havoc_source = data.havoc_data and data or live_data
 	assign(self.set_mission_havoc_rank, havoc_rank_from_mechanism_data(havoc_source))
-	assign(self.set_mission_havoc_modifiers, havoc_modifiers_from_mechanism_data(havoc_source))
+	assign(self.set_mission_circumstances, circumstances_from_mechanism_data(havoc_source))
 	assign(self.set_mission_resistance, value("resistance"))
 end
 

@@ -174,14 +174,6 @@ return {
 	section_offense = localized("Offense", "进攻", "Атака", "Attaque", "Ofensivos", "Offensive"),
 	section_defense = localized("Defense", "防御", "Защита", "Défense", "Defensivos", "Defensive"),
 	section_support = localized("Teamwork", "团队协作", "Командная работа", "Travail d'équipe", "Trabajo en equipo", "Teamwork"),
-	section_havoc_modifiers = localized(
-		"Havoc Modifiers",
-		"险恶修正",
-		"Модификаторы Хаоса",
-		"Modificateurs Havoc",
-		"Modificadores de Havoc",
-		"Havoc-Modifikatoren"
-	),
 	section_plugin_rows = localized("Additional Stats", "附加统计", "Дополнительная статистика", "Statistiques supplémentaires", "Estadísticas adicionales", "Zusätzliche Statistiken"),
 
 	row_resources_collected = localized("Resources collected", "收集资源", "Собрано ресурсов", "Ressources collectées", "Recursos recogidos", "Gesammelte Ressourcen"),

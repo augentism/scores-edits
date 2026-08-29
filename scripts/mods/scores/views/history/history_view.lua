@@ -2,6 +2,7 @@ local mod = get_mod("scores")
 
 local Missions = mod:original_require("scripts/settings/mission/mission_templates")
 local Danger = mod:original_require("scripts/utilities/danger")
+local Circumstances = mod:io_dofile("scores/scripts/mods/scores/circumstances")
 local ScriptWorld = mod:original_require("scripts/foundation/utilities/script_world")
 local UIRenderer = mod:original_require("scripts/managers/ui/ui_renderer")
 local UIWidget = mod:original_require("scripts/managers/ui/ui_widget")
@@ -56,6 +57,34 @@ local function history_difficulty_label(entry)
 	end
 
 	return nil
+end
+
+-- The mission's circumstances -- Blight Spreads, Rotten Armour and friends. Entries
+-- saved before these were recorded still carry the single `mission_circumstance`
+-- field, so fall back to it rather than showing nothing for older runs.
+local function circumstance_label(entry)
+	local names = entry.mission_circumstances
+	if (not names or #names == 0) and entry.mission_circumstance and entry.mission_circumstance ~= "" then
+		names = {entry.mission_circumstance}
+	end
+
+	local labels = Circumstances.labels(names)
+	return #labels > 0 and table.concat(labels, " | ") or nil
+end
+
+local function history_details_label(entry)
+	local pieces = {}
+	local difficulty = history_difficulty_label(entry)
+	local circumstances = circumstance_label(entry)
+
+	if difficulty then
+		pieces[#pieces+1] = difficulty
+	end
+	if circumstances then
+		pieces[#pieces+1] = circumstances
+	end
+
+	return table.concat(pieces, " | ")
 end
 
 local function history_difficulty_color(entry)
@@ -164,7 +193,7 @@ ScoreboardHistoryView._entry_widget_data = function(self, entry)
 			en = mission_label(entry),
 		},
 		[details_key] = {
-			en = history_difficulty_label(entry) or "",
+			en = history_details_label(entry),
 		},
 		[players_key] = {
 			en = player_names(entry),
@@ -307,9 +336,6 @@ ScoreboardHistoryView._open_entry_preview = function(self, widget)
 	self._logged_history_hover = nil
 
 	self.loaded_players = self:_preview_players(self.entry, widget.file)
-	-- The board builds its havoc section from whichever mission is on screen, so the
-	-- previewed run's modifiers stand in for the live ones while this view is open.
-	mod._history_havoc_modifiers = self.entry and self.entry.mission_havoc_modifiers or nil
 	self.loaded_rows = mod:collect_scoreboard_rows(self.entry.rows)
 	self.row_widgets = {}
 	self.scoreboard_widget = self._widgets_by_name.scoreboard
@@ -579,7 +605,6 @@ ScoreboardHistoryView._draw_preview_rows = function(self, dt, input_service)
 end
 
 ScoreboardHistoryView.on_exit = function(self)
-	mod._history_havoc_modifiers = nil
 	if self._popup_menu then
 		self:_remove_popup_menu()
 	end

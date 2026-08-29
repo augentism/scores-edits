@@ -41,8 +41,8 @@ mod.set_mission_havoc_rank = function(self, mission_havoc_rank)
 	self.mission_havoc_rank = mission_havoc_rank
 end
 
-mod.set_mission_havoc_modifiers = function(self, mission_havoc_modifiers)
-	self.mission_havoc_modifiers = mission_havoc_modifiers
+mod.set_mission_circumstances = function(self, mission_circumstances)
+	self.mission_circumstances = mission_circumstances
 end
 
 mod.set_mission_resistance = function(self, mission_resistance)
