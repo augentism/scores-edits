@@ -20,6 +20,13 @@ local content_top = title_y + title_height + 10
 local grid_width = 452
 local grid_height = screen_size[2] - content_top - bottom_reserved
 
+-- The scoreboard preview does not share the run list's top anchor. The list sits
+-- under this view's title; the preview has nothing above it worth reserving room
+-- for, so it starts at the top of the screen and runs down to the same reserved
+-- bottom band. That is roughly 130 units of extra height for the rows.
+local preview_top = 0
+local preview_height = screen_size[2] - preview_top - bottom_reserved
+
 local scoreboard_history_view_settings = {
     scrollbar_width = 10,
     max_visible_dropdown_options = 5,
@@ -28,9 +35,10 @@ local scoreboard_history_view_settings = {
     title_y = title_y,
     title_height = title_height,
     content_top = content_top,
-    -- The saved-run list and the scoreboard preview beside it both size from this,
-    -- so they stay the same height as each other.
+    -- Sizes the saved-run list only; the preview is taller, see preview_height.
     grid_size = {grid_width, grid_height},
+    preview_top = preview_top,
+    preview_height = preview_height,
     grid_padding = {18, 34, 18, 18},
     grid_spacing = {0, 6},
     grid_blur_edge_size = {8, 8},

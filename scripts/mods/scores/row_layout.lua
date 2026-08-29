@@ -27,11 +27,10 @@ local multi_column_gap = 40
 local multi_column_header_width = ScoreboardViewSettings.scoreboard_column_header_width
 local multi_column_block_width = 920
 
--- Read from the history view's own settings rather than restated here: the preview
--- panel is sized to match the saved-run list it sits beside, and a second copy of
--- that number is one nobody remembers to change.
+-- Read from the history view's own settings rather than restated here, so a second
+-- copy of the number is not left behind to drift.
 local HistoryViewSettings = mod:io_dofile("scores/scripts/mods/scores/views/history/history_view_settings")
-local history_preview_height = HistoryViewSettings.grid_size and HistoryViewSettings.grid_size[2] or 760
+local history_preview_height = HistoryViewSettings.preview_height or 760
 
 -- Delegates to the same table row_widget.lua draws with, so the measuring pass and
 -- the drawing pass can never disagree about how tall a row is. row_widget loads
@@ -406,7 +405,10 @@ mod.scoreboard_layout = function(self, loaded_rows, sorted_rows, options)
 	local chrome = ScoreboardViewSettings.scoreboard_table_top_padding
 		+ ScoreboardViewSettings.scoreboard_table_bottom_padding
 		+ frame_chrome_height
-	local max_height = math.min(options.max_height or self:scoreboard_max_height(), self:scoreboard_max_height())
+	-- A surface that resolved its own height wins outright: the history preview is
+	-- sized to a fixed panel, so the user's max-height setting -- which exists to
+	-- bound the boards that grow to fit their content -- must not shrink it.
+	local max_height = options.max_height or self:scoreboard_max_height()
 	local budget = math.max(max_height - chrome, 1)
 
 	-- Only the end-of-mission board can go multi-column, and only on request.
@@ -427,6 +429,7 @@ mod.scoreboard_layout = function(self, loaded_rows, sorted_rows, options)
 		chrome_height = chrome,
 		column_budget = budget,
 		max_height = max_height,
+		fixed_height = options.fixed_height == true,
 		-- Even split rather than fill-then-spill: a first column running to the
 		-- screen edge beside a nearly empty second one reads as a bug.
 		column_target = math.ceil(total / columns),
@@ -533,9 +536,10 @@ mod.setup_row_widgets = function(self, loaded_rows, groups, row_widgets, widgets
 	local is_overlay = scenegraph_ids ~= nil
 	local layout = self:scoreboard_layout(nil, sorted_rows, {
 		single_column = is_history or is_overlay,
-		-- The preview panel is pinned to the height of the saved-run list it sits
-		-- beside, rather than growing to the full row set and running off-screen.
+		-- The preview is pinned to the screen height it was given, rather than
+		-- growing to the full row set and running off the bottom.
 		max_height = is_history and history_preview_height or nil,
+		fixed_height = is_history,
 	})
 	local counts_by_section = section_row_counts(sorted_rows)
 	local compact_level = layout.compact_level
@@ -619,9 +623,16 @@ end
 mod.adjust_size = function(self, total_height, scoreboard_widget, scenegraph, row_widgets, scenegraph_ids)
 	local layout = self._scoreboard_layout
 	local height = total_height + ScoreboardViewSettings.scoreboard_table_bottom_padding + frame_chrome_height
-	-- Clamp to whatever ceiling this surface resolved (the history preview uses a
-	-- smaller one). Content past it is reachable by scrolling, not lost.
-	height = math.min(height, layout and layout.max_height or self:scoreboard_max_height())
+	local ceiling = layout and layout.max_height or self:scoreboard_max_height()
+	if layout and layout.fixed_height then
+		-- Always the full panel, never shrunk to the rows: the history preview has to
+		-- line up with the saved-run list beside it, and a short run would otherwise
+		-- leave its bottom edge floating part-way up.
+		height = ceiling
+	else
+		-- Content past the ceiling is reachable by scrolling, not lost.
+		height = math.min(height, ceiling)
+	end
 	local width = layout and self:scoreboard_layout_panel_width(layout) or ScoreboardViewSettings.scoreboard_size[1]
 	local style = scoreboard_widget and scoreboard_widget.style or {}
 	local sizes = {height - 36, height, height - 3, height - 28}

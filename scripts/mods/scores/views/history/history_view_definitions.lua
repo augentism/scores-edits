@@ -19,11 +19,19 @@ local blur = ViewSettings.grid_blur_edge_size
 local scrollbar_width = ViewSettings.scrollbar_width
 local base_z = 100
 local preview_gap = 48
+local content_left = 160
 local scoreboard_scenegraph = FrameStyle.scoreboard_scenegraph(UIWorkspaceSettings.screen, ScoreboardViewSettings, base_z)
 scoreboard_scenegraph.scoreboard.vertical_alignment = "top"
 scoreboard_scenegraph.scoreboard.horizontal_alignment = "left"
-scoreboard_scenegraph.scoreboard.parent = "history_content_area"
-scoreboard_scenegraph.scoreboard.position = {grid_width + preview_gap, 0, base_z}
+-- Parented to the screen rather than the content area so it is not bound to that
+-- area's top anchor, which sits below the view title. Its x is therefore absolute:
+-- the content area's own offset plus the run list and the gap beside it.
+scoreboard_scenegraph.scoreboard.parent = "screen"
+scoreboard_scenegraph.scoreboard.position = {
+	content_left + grid_width + preview_gap,
+	ViewSettings.preview_top,
+	base_z,
+}
 
 local scenegraph_definition = {
 	screen = UIWorkspaceSettings.screen,
@@ -31,18 +39,19 @@ local scenegraph_definition = {
 		vertical_alignment = "top",
 		horizontal_alignment = "left",
 		parent = "screen",
-		size = {grid_width + preview_gap + ScoreboardViewSettings.scoreboard_size[1], grid_height},
+		-- Holds the saved-run list only now that the preview hangs off the screen.
+		size = {grid_width, grid_height},
 		-- Both anchors come from the view settings, which derive them from the
 		-- workspace, so the panels grow into whatever vertical room there is
 		-- instead of sitting below the stock top-panel band this view never draws.
-		position = {160, ViewSettings.content_top, 1},
+		position = {content_left, ViewSettings.content_top, 1},
 	},
 	title_text = {
 		vertical_alignment = "top",
 		horizontal_alignment = "left",
 		parent = "screen",
 		size = {520, ViewSettings.title_height},
-		position = {160, ViewSettings.title_y, 2},
+		position = {content_left, ViewSettings.title_y, 2},
 	},
 	background = {
 		vertical_alignment = "top",
