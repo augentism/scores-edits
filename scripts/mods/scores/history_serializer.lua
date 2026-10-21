@@ -219,6 +219,12 @@ mod.save_scoreboard_history_entry = function(self, sorted_rows)
 	end
 	local players = self.player_manager:players()
 	local timer = (_os.time() or 0) - (self.timer or 0)
+	local augovod = get_mod("AugoVod")
+	local recording_association
+	if augovod and type(augovod.scoreboard_association) == "function" then
+		local ok, association = pcall(augovod.scoreboard_association)
+		if ok and type(association) == "table" then recording_association = association end
+	end
 
 	local write_ok = pcall(function()
 	write_record(file, {
@@ -241,6 +247,10 @@ mod.save_scoreboard_history_entry = function(self, sorted_rows)
 	-- fields. Everything after the marker is one verbatim value.
 	if type(self.mission_havoc_data) == "string" and self.mission_havoc_data ~= "" then
 		write_record(file, {"#havoc", self.mission_havoc_data})
+	end
+	if recording_association and recording_association.run_id then
+		write_record(file, {"#augovod_v1", recording_association.run_id,
+			recording_association.recording_id or "", n = 3})
 	end
 
 	local player_count = 0
@@ -348,6 +358,9 @@ mod.save_scoreboard_history_entry = function(self, sorted_rows)
 		_os.remove(temporary_path)
 		return false
 	end
+	if recording_association and augovod and type(augovod.scoreboard_saved) == "function" then
+		pcall(augovod.scoreboard_saved, file_name, recording_association)
+	end
 
 	local cache = self:get_scoreboard_history_entries_cache()
 	if type(cache) ~= "table" then cache = {} end
@@ -391,6 +404,11 @@ mod.load_scoreboard_history_entry = function(self, path, date, only_head)
 			entry.mission_challenge = fields[7] or ""
 			entry.mission_havoc_rank = optional_field(fields[8])
 			entry.mission_circumstances = Circumstances.decode(optional_field(fields[9]))
+			mode = nil
+
+		elseif marker == "#augovod_v1" then
+			entry.augovod_run_id = optional_field(fields[2])
+			entry.augovod_recording_id = optional_field(fields[3])
 			mode = nil
 
 		elseif marker == "#havoc" then
